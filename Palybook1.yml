@@ -1,0 +1,45 @@
+---
+- hosts: slave101
+  vars:
+    information_apps:
+     - nmon
+     - bmon
+     - htop
+     - iftop
+    network_apps:
+     - net-tools
+    repo:
+     - epel-release
+    bash:
+     - bash-com*
+    file_manipulation:
+     - rsync
+     - mc
+     - unzip
+         
+  tasks:
+  - name: epel-release
+    package:                                                                                                         
+     name: "{{repo}}"                                                                                                
+     state: present                                                                                                  
+  - name: install information_apps                                                                                   
+    package:                                                                                                         
+     name: "{{information_apps}}"                                                                                    
+     state: present
+  - name: install network_apps
+    package:
+     name: "{{network_apps}}"
+     state: present
+  - name: Install bash-compleation
+    package:
+     name: "{{bash}}"
+     state: present
+  - name: File manipulation
+    package:
+     name: "{{file_manipulation}}"
+     state: present
+  - name: se linux disable
+    lineinfile:
+     path: /etc/selinux/config
+     regexp: '^SELINUX='
+     line: 'SELINUX=disabled'  
