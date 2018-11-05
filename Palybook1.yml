@@ -1,5 +1,5 @@
 ---
-- hosts: slave101
+- hosts: slave173
   vars:
     information_apps:
      - nmon
