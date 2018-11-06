@@ -42,4 +42,28 @@
     lineinfile:
      path: /etc/selinux/config
      regexp: '^SELINUX='
-     line: 'SELINUX=disabled'  
+     line: 'SELINUX=disabled' 
+  - name: update
+    package:
+     name: "*"
+     state: latest
+
+
+
+
+
+#     register: state
+#     debug: var=latest.stdout_lines
+
+
+
+#  - name: Classify hosts depending on their OS distribution
+#    group_by:
+#     key: os_{{ ansible_facts['distribution'] }}
+#  - hosts: os_CentOS
+#     gather_facts: False
+#     tasks:  
+#     - name: update the system
+#       yum:
+#       name: "*"
+#       state: latest  
