@@ -1,9 +1,9 @@
 ---
-- hosts: slave173
+- hosts: "slave17333"
   vars:
     information_apps:
      - nmon
-     - bmon
+#     - bmon
      - htop
      - iftop
     network_apps:
