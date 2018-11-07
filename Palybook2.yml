@@ -1,0 +1,103 @@
+---
+### This is A suse instalation
+- hosts: "cems"
+  vars:
+    information_apps:
+     - nmon
+#     - bmon
+     - htop
+     - iftop
+    network_apps:
+     - net-tools
+    mysql80repo:
+     - https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm 
+#     - epel-release
+    bash:
+     - bash-com*
+    file_manipulation:
+     - rsync
+     - mc
+     - unzip
+    rpm_package:
+     - https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm     
+  tasks:
+#  - name: epel-release
+#    package:                                                                                                         
+#     name: "{{repo}}"                                                                                                
+#     state: present                                                                                                  
+  - name: install information_apps                                                                                   
+    package:                                                                                                         
+     name: "{{information_apps}}"
+     state: present
+     disable_gpg_check: yes
+  - name: install network_apps
+    package:
+     name: "{{network_apps}}"
+     state: present
+     disable_gpg_check: yes
+  - name: Install bash-compleation
+    package:
+     name: "{{bash}}"
+     state: present
+     disable_gpg_check: yes
+  - name: File manipulation
+    package:
+     name: "{{file_manipulation}}"
+     state: present
+     disable_gpg_check: yes
+  - name: Mysql 8 repo
+    zypper:
+     name: "{{mysql80repo}}"
+     state: present 
+     disable_gpg_check: yes
+  - name: disable all suse mysql repos
+    package:
+
+
+
+
+
+
+
+
+#
+#- name: zypper_repo_mysql_80
+#  - zypper_repository:
+#   name: mysql80
+#    zypper_repository:
+#     name: mysql-community
+#     repo: 'https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm'
+#     state: present
+#     auto_import_keys: yes
+  - name: update
+    package:
+     name: "*"
+     state: latest
+     disable_gpg_check: yes
+
+
+#  - name: se linux disable
+#    lineinfile:
+#     path: /etc/selinux/config
+#     regexp: '^SELINUX='
+#     line: 'SELINUX=disabled' 
+#  - name: install rpm package
+#    command: rpm -i "{{rpm_package}}"
+
+
+
+#     register: state
+#     diebug: var=latest.stdout_lines
+
+
+
+#  - name: Classify hosts depending on their OS distribution
+#    group_by:
+#     key: os_{{ ansible_facts['distribution'] }}
+#  - hosts: os_CentOS
+#     gather_facts: False
+#     tasks:  
+#     - name: update the system
+#       yum:
+#       name: "*"
+#       state: latest  
