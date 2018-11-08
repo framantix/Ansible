@@ -12,6 +12,11 @@
     mysql80repo:
      - https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm 
 #     - epel-release
+    mysql_install_server:
+     - mysql-community-client 
+     - mysql-community-common 
+     - mysql-community-libs 
+     - mysql-community-server
     bash:
      - bash-com*
     file_manipulation:
@@ -19,7 +24,15 @@
      - mc
      - unzip
     rpm_package:
-     - https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm     
+     - https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm
+    mysql_enable_repo:
+     -mysql57-community
+     -mysql57-community-source
+    mysql_disable_repo:
+     mysql56-community
+     mysql57-community
+     mysql80-community
+#
   tasks:
 #  - name: epel-release
 #    package:                                                                                                         
@@ -45,13 +58,11 @@
      name: "{{file_manipulation}}"
      state: present
      disable_gpg_check: yes
-  - name: Mysql 8 repo
-    zypper:
-     name: "{{mysql80repo}}"
-     state: present 
-     disable_gpg_check: yes
-  - name: disable all suse mysql repos
+  - name: install rpm Mysql 8 repo suse
     package:
+     name: "{{rpm_package}}"
+     state: present
+     disable_gpg_check: yes
 
 
 
@@ -60,9 +71,41 @@
 
 
 
-#
-#- name: zypper_repo_mysql_80
-#  - zypper_repository:
+#  - name: Mysql 8 repo
+#    zypper:
+#     name: "{{mysql80repo}}"
+#     state: present 
+#     disable_gpg_check: yes
+#  - name: disable all suse mysql repos for suse
+#    command: zypper modifyrepo -d "{{mysql_disable_repo}}"
+#  - name: enable mysql repos for suse
+#    command: zypper modifyrepo -e "{{mysql_enable_repo}}"
+  - name: disable all suse mysql repos for suse
+    command: zypper modifyrepo -d mysql80-community
+  - name: disable suse mysql mysql56-community for suse
+    command: zypper modifyrepo -d mysql56-community
+  - name: disable suse mysql mysql57-community for suse
+    command: zypper modifyrepo -d mysql57-community
+  - name: disable suse mysql mysql80-community for suse
+    command: zypper modifyrepo -d mysql80-community
+  - name: enable suse mysql mysql57-community for suse
+    command: zypper modifyrepo -e mysql57-community
+
+  - name: install Mysql server 
+    package:
+     name: "{{mysql_install_server}}"
+     state: present
+     disable_gpg_check: yes
+ 
+
+
+
+
+
+
+
+
+
 #   name: mysql80
 #    zypper_repository:
 #     name: mysql-community
@@ -74,6 +117,12 @@
      name: "*"
      state: latest
      disable_gpg_check: yes
+  
+  - name: Start MySQL
+    service:
+     name: mysql
+     state: started
+     enabled: yes   
 
 
 #  - name: se linux disable
@@ -100,4 +149,14 @@
 #     - name: update the system
 #       yum:
 #       name: "*"
-#       state: latest  
+#       state: latest 
+#---------------------------------------------
+##doesnot work becaouse i think its a rpm
+##  - zypper_repository:
+##     name: Mysql 8 repo
+##     repo: https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm
+##     state: present
+##     auto_import_keys: yes
+##     disable_gpg_check: yes
+##     enabled: no 
+#
