@@ -112,18 +112,32 @@
 #     repo: 'https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm'
 #     state: present
 #     auto_import_keys: yes
-  - name: update
-    package:
-     name: "*"
-     state: latest
-     disable_gpg_check: yes
-  
-  - name: Start MySQL
-    service:
-     name: mysql
-     state: started
-     enabled: yes   
+#  - name: update
+#    package:
+#     name: "*"
+#     state: latest
+#     disable_gpg_check: yes
+  - name: copy my.cnf                      
+    copy:
+     src: /root/Ansible/mycnf.conf
+     dest: /etc/my.cnf
+     owner: root
+     group: root
+     mode: u=rw,g=r,o=r
+  - name: enabeling 
+    
+## skip-grant-tables
 
+  
+#  - name: Start MySQL
+#    service:
+#     name: mysql
+#     state: started
+#     enabled: yes   
+    lineinfile:
+     path: /etc/my.cnf
+     regexp: '^## skip-grant-tables'
+     line: 'skip-grant-tables'
 
 #  - name: se linux disable
 #    lineinfile:
