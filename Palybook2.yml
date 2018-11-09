@@ -26,12 +26,16 @@
     rpm_package:
      - https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm
     mysql_enable_repo:
-     -mysql57-community
-     -mysql57-community-source
+     - mysql57-community
+     - mysql57-community-source
     mysql_disable_repo:
-     mysql56-community
-     mysql57-community
-     mysql80-community
+     - mysql56-community
+     - mysql57-community
+     - mysql80-community
+    mysql_root_password: proP1734mekjsajd$%
+     
+    if_suse:
+     - ansible_os_family == 'Suse'
 #
   tasks:
 #  - name: epel-release
@@ -82,14 +86,28 @@
 #    command: zypper modifyrepo -e "{{mysql_enable_repo}}"
   - name: disable all suse mysql repos for suse
     command: zypper modifyrepo -d mysql80-community
+    when: ansible_os_family == 'Suse'
+#    when: "{{if_suse}}"
+
   - name: disable suse mysql mysql56-community for suse
     command: zypper modifyrepo -d mysql56-community
+    when: ansible_os_family == 'Suse'
+#    when: "{{if_suse}}"
+
   - name: disable suse mysql mysql57-community for suse
     command: zypper modifyrepo -d mysql57-community
+    when: ansible_os_family == 'Suse'
+#    when: "{{if_suse}}"
+
   - name: disable suse mysql mysql80-community for suse
     command: zypper modifyrepo -d mysql80-community
+    when: ansible_os_family == 'Suse'
+#    when: "{{if_suse}}"
+
   - name: enable suse mysql mysql57-community for suse
     command: zypper modifyrepo -e mysql57-community
+    when: ansible_os_family == 'Suse'
+#    when: "{{if_suse}}"
 
   - name: install Mysql server 
     package:
@@ -119,16 +137,16 @@
 #     disable_gpg_check: yes
   - name: copy my.cnf                      
     copy:
-     src: /root/Ansible/mycnf.conf
+     src: mycnf.conf
      dest: /etc/my.cnf
      owner: root
      group: root
      mode: u=rw,g=r,o=r
-  - name: enabeling skip grant tables
-    lineinfile:
-     path: /etc/my.cnf
-     regexp: '^## skip-grant-tables'
-     line: 'skip-grant-tables'
+#  - name: enabeling skip grant tables
+#    lineinfile:
+#     path: /etc/my.cnf
+#     regexp: '^## skip-grant-tables'
+#     line: 'skip-grant-tables'
    
   - name: Start MySQL
     service:
@@ -143,6 +161,90 @@
   - name: Adds Python MySQL support on RedHat/CentOS
     yum: name=MySQL-python state=present
     when: ansible_os_family == 'RedHat'
+
+# Insatlira packet potreban mozda za manipulaciju sql-a preko pythona
+  - name: Adds Python MySQL support on SUSE
+    zypper: name=python-MySQL-python  state=present
+    when: ansible_os_family == 'Suse'
+
+  - name: get mysql version
+    command: mysql --version
+    register: mysql_cli_version
+    changed_when: false
+    check_mode: false
+# trazi pocetnu sifru  
+  - name: Find temporary password
+    shell: "echo `grep 'temporary.*root@localhost' /var/log/mysql/mysqld.log | sed 's/.*root@localhost: //'`"
+# shell: "echo $(grep 'temporary.*root@localhost' /var/log/messages | sed 's/.*root@localhost: //')"
+    register: mysql_root_password_temp
+    tags: register
+  - debug:
+     msg: "{{mysql_root_password_temp}}"
+
+#  - name: dump temporary passwd
+#    debug: msg="success"
+#    when: mysql_root_password_temp.stdout ==  mysql_root_password_temp 
+#    tags: dump
+
+  - name: Set new password from temporary password
+    shell: 'mysql -e "SET PASSWORD = PASSWORD(''{{ mysql_root_password }}'');" --connect-expired-password -uroot -p"{{ mysql_root_password_temp.stdout }}"'
+    when: mysql_root_password != mysql_root_password
+
+  - name: remove password validation plugin (5.7.x)
+    shell: 'mysql -e "uninstall plugin validate_password;" -uroot -p"{{ mysql_root_password }}"'
+#    when: "'5.7.' in mysql_cli_version.stdout"
+    
+    failed_when: false
+    changed_when: false
+  - name: copy .my.cnf file with root password credentials
+    template: src=.my.cnf.j2 dest=/root/.my.cnf mode=0600
+#    when: mysql_root_db_pass != ''no_log: True
+
+  - name: update mysql root password for all root accounts
+    mysql_user: name=root host={{ item }} password={{ mysql_root_password }}
+    with_items:
+     - "{{ ansible_hostname|lower() }}"
+     - 127.0.0.1
+     - ::1
+     - localhost
+    when: mysql_root_password == mysql_root_password
+
+  - name: ensure anonymous users are not in the database
+    mysql_user: name='' host={{ item }} state=absent
+    with_items:
+     - localhost
+  - name: remove the test database
+    mysql_db: name=test state=absent
+
+
+
+
+
+
+
+
+
+
+#  - name: Set the root password 
+#    mysql_user: login_user=root login_password="{{ mysql_root_passwd }}" user=root password="{{ mysql_root_passwd }}"
+
+#  - name: Secure the root user for IPV6 localhost (::1)
+#    mysql_user: login_user=root  user=root password="{{ mysql_root_password }}" host="::1"
+
+#  - name: Secure the root user for IPV4 localhost (127.0.0.1)
+#    mysql_user: login_user=root login_password="{{ mysql_root_password }}" user=root password="{{ mysql_root_password }}" host="127.0.0.1"
+
+#  - name: Secure the root user for localhost domain
+#    mysql_user: login_user=root login_password="{{ mysql_root_password }}" user=root password="{{ mysql_root_password }}" host="localhost"
+
+#  - 0name: Secure the root user for server_hostname domain
+#    mysql_user: login_user=root login_password="{{ root_password }}" user=root password="{{ root_password }}" host="{{ ansible_fqdn }}"
+
+  - name: Deletes anonymous server user
+    mysql_user: login_user=root login_password="{{ mysql_root_password }}" user="" host_all=yes state=absent
+
+  - name: Removes the test database
+    mysql_db: login_user=root login_password="{{ mysql_root_password }}" db=test state=absent
 
 
 #  - name: se linux disable
@@ -178,5 +280,3 @@
 ##     state: present
 ##     auto_import_keys: yes
 ##     disable_gpg_check: yes
-##     enabled: no 
-#
