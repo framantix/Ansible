@@ -2,40 +2,94 @@
 ### This is A suse instalation
 - hosts: "cems"
   vars:
-    information_apps:
+   information_apps:
      - nmon
 #     - bmon
      - htop
      - iftop
-    network_apps:
+   network_apps:
      - net-tools
-    mysql80repo:
+   mysql80repo:
      - https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm 
 #     - epel-release
-    mysql_install_server:
+   mysql_install_server:
      - mysql-community-client 
      - mysql-community-common 
      - mysql-community-libs 
      - mysql-community-server
-    bash:
+   bash:
      - bash-com*
-    file_manipulation:
+   file_manipulation:
      - rsync
      - mc
      - unzip
-    rpm_package:
+   rpm_package:
      - https://dev.mysql.com/get/mysql80-community-release-sles12-1.noarch.rpm
-    mysql_enable_repo:
+   mysql_enable_repo:
      - mysql57-community
      - mysql57-community-source
-    mysql_disable_repo:
+   mysql_disable_repo:
      - mysql56-community
      - mysql57-community
      - mysql80-community
-    mysql_root_password: proP1734mekjsajd$%
+   mysql_root_password: proP1734mekjsajd$%
      
-    if_suse:
+   if_suse:
      - ansible_os_family == 'Suse'
+   apache2_php5:
+     - apache2
+     - apache2-devel
+     - apache2-doc
+     - apache2-example-pages
+     - apache2-mod_dnssd
+     - apache2-mod_perl
+     - apache2-mod_php5
+     - apache2-mod_python
+     - apache2-mod_tidy
+     - apache2-prefork
+     - apache2-utils
+   php5_extra_packages:
+     - php5
+     - php5-bcmath
+     - php5-bz2
+     - php5-calendar
+     - php5-ctype
+     - php5-curl
+     - php5-dba
+     - php5-devel
+     - php5-dom
+     - php5-exif
+     - php5-fastcgi
+     - php5-ftp
+     - php5-gd
+     - php5-gettext
+     - php5-gmp
+     - php5-iconv
+     - php5-imap
+     - php5-json
+     - php5-ldap
+     - php5-mbstring
+     - php5-mcrypt
+     - php5-mysql
+     - php5-odbc
+     - php5-openssl
+     - php5-pdo
+     - php5-pear
+     - php5-pgsql
+     - php5-shmop
+     - php5-snmp
+     - php5-sockets
+     - php5-sqlite
+     - php5-sysvsem
+     - php5-sysvshm
+     - php5-tidy
+     - php5-tokenizer
+     - php5-wddx
+     - php5-xmlreader
+     - php5-xmlwriter
+     - php5-xsl
+     - php5-zip
+     - php5-zlib
 #
   tasks:
 #  - name: epel-release
@@ -188,42 +242,41 @@
 
   - name: Set new password from temporary password
     shell: 'mysql -e "SET PASSWORD = PASSWORD(''{{ mysql_root_password }}'');" --connect-expired-password -uroot -p"{{ mysql_root_password_temp.stdout }}"'
-    when: mysql_root_password != mysql_root_password
+#    when: mysql_root_password_temp.stdout == mysql_root_password
+    ignore_errors: yes
 
   - name: remove password validation plugin (5.7.x)
     shell: 'mysql -e "uninstall plugin validate_password;" -uroot -p"{{ mysql_root_password }}"'
 #    when: "'5.7.' in mysql_cli_version.stdout"
-    
+    ignore_errors: yes
+
     failed_when: false
     changed_when: false
   - name: copy .my.cnf file with root password credentials
     template: src=.my.cnf.j2 dest=/root/.my.cnf mode=0600
 #    when: mysql_root_db_pass != ''no_log: True
+    ignore_errors: yes
 
   - name: update mysql root password for all root accounts
     mysql_user: name=root host={{ item }} password={{ mysql_root_password }}
     with_items:
-     - "{{ ansible_hostname|lower() }}"
+#     - "{{ ansible_hostname|lower() }}"
      - 127.0.0.1
      - ::1
      - localhost
     when: mysql_root_password == mysql_root_password
+    ignore_errors: yes
+
 
   - name: ensure anonymous users are not in the database
     mysql_user: name='' host={{ item }} state=absent
     with_items:
      - localhost
+    ignore_errors: yes
+
   - name: remove the test database
     mysql_db: name=test state=absent
-
-
-
-
-
-
-
-
-
+    ignore_errors: yes
 
 #  - name: Set the root password 
 #    mysql_user: login_user=root login_password="{{ mysql_root_passwd }}" user=root password="{{ mysql_root_passwd }}"
@@ -245,6 +298,111 @@
 
   - name: Removes the test database
     mysql_db: login_user=root login_password="{{ mysql_root_password }}" db=test state=absent
+
+  - name: install apache2 with php-5 and neaded mods on suse
+    package:
+     name: "{{apache2_php5}}"
+     state: present
+     disable_gpg_check: yes
+    when: ansible_os_family == 'Suse'
+    ignore_errors: yes
+
+  - name: install apache2 extra packages for php-5 for suse
+    package:
+     name: "{{php5_extra_packages}}"
+     state: present
+     disable_gpg_check: yes
+    when: ansible_os_family == 'Suse'
+    ignore_errors: yes
+  
+  - name: copy entis-cems-ssl.conf
+    copy:
+     src: /root/etc/apache2/vhosts.d/entis-cems-ssl.conf
+     dest: /etc/apache2/vhosts.d/entis-cems-ssl.conf
+     owner: root
+     group: root
+     mode: u=rw,g=r,o=r
+    when: ansible_os_family == 'Suse'
+    ignore_errors: yes
+
+
+  - name: copy kmphase11.conf
+    copy:
+     src: /root/etc/apache2/vhosts.d/kmphase11.conf
+     dest: /etc/apache2/vhosts.d/kmphase11.conf
+     owner: root
+     group: root
+     mode: u=rw,g=r,o=r
+    when: ansible_os_family == 'Suse'
+    ignore_errors: yes
+
+  - name: copy tekob3cems.conf
+    copy:
+     src: /root/etc/apache2/vhosts.d/tekob3cems.conf
+     dest: /etc/apache2/vhosts.d/tekob3cems.conf
+     owner: root
+     group: root
+     mode: u=rw,g=r,o=r
+    when: ansible_os_family == 'Suse'
+    ignore_errors: yes 
+
+  - name: copy php5.ini
+    copy:
+     src: /root/etc/php5/apache2/php.ini
+     dest: /etc/php5/apache2/php.ini
+     owner: root
+     group: root
+     mode: u=rw,g=r,o=r
+    when: ansible_os_family == 'Suse'
+    ignore_errors: yes
+
+# kopirati i etc hosts
+#
+  - apache2_module:
+      state: present
+      name: rewrite
+      force: True
+      ignore_configcheck: True
+
+  - apache2_module:
+      state: present
+      name: setenvif 
+      force: True
+      ignore_configcheck: True
+
+  - apache2_module:
+      state: present
+      name: php5
+      force: True
+      ignore_configcheck: True
+
+  - name: copy etc/hosts
+    copy:
+     src: /root/etc/hosts
+     dest: /etc/hosts
+     owner: root
+     group: root
+     mode: u=rw,g=r,o=r
+    when: ansible_os_family == 'Suse'
+    ignore_errors: yes
+
+
+
+
+  - name: Restart apache2
+    service:
+     name: apache2
+     state: restarted
+     force: True
+
+
+
+
+
+
+
+
+
 
 
 #  - name: se linux disable
